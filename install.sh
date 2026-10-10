@@ -10,3 +10,5 @@ cd $CPATH
 cd ByeUSBMsg
 cargo build --release
 sudo mv ./target/release/ByeUSBMsg /var/lib/byeusb/bin
+sudo chmod 755 /var/lib/byeusb/bin/ByeUSB
+sudo chmod 755 /var/lib/byeusb/bin/ByeUSBMsg
