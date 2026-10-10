@@ -1,0 +1,13 @@
+[package]
+name = "ByeUSBMsg"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.45"
+glib = "0.22.10"
+gtk = "0.19.0"
+libc = "0.2.190"
+udev = "0.9.3"
+zbus = "5.19.0"
+zmq = "0.10.0"

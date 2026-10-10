@@ -1,0 +1,11 @@
+[package]
+name = "ByeUSB"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.45"
+libc = "0.2.189"
+udev = "0.9.3"
+zbus = "5.19.0"
+zmq = "0.10.0"
