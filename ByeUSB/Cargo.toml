@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 chrono = "0.4.45"
+clap = { version = "4", features = ["derive"] }
 libc = "0.2.189"
 udev = "0.9.3"
 zbus = "5.19.0"

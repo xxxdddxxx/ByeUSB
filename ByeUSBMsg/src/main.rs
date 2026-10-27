@@ -4,18 +4,25 @@ use std::thread;
 use std::time::{Duration, Instant};
 use zmq;
 use std::os::unix::fs::OpenOptionsExt;
+use clap::Parser;
 
-fn create_pause_file() -> std::io::Result<()> {
-    let _ = fs::remove_file(PAUSE_FILE);
+#[derive(Parser, Debug)]
+#[command(name = "ByeUSBMsg", version, about)]
+struct Args {
+    #[arg(short = 'f', long = "file", default_value_t = "/var/lib/byeusb/monitoring.pause".to_string())]
+    file: String,
+}
+fn create_pause_file(pause_file: &String) -> std::io::Result<()> {
+    let _ = fs::remove_file(pause_file);
     fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .mode(0o600)
-        .open(PAUSE_FILE)?;
+        .open(pause_file)?;
     Ok(())
 }
 
-const PAUSE_FILE: &str = "/var/lib/byeusb/monitoring.pause";
+// const PAUSE_FILE: &str = "/var/lib/byeusb/monitoring.pause";
 const PAUSE_SECS: u64 = 5;
 
 fn is_root() -> bool {
@@ -38,7 +45,8 @@ fn main() {
         eprintln!("[ERROR] failed to init gtk");
         return;
     }
-
+    let args = Args::parse();
+    let pause_file_close = args.file.clone();
     let ctx = zmq::Context::new();
     let pusher = match ctx.socket(zmq::PUSH) {
         Ok(s) => s,
@@ -54,7 +62,7 @@ fn main() {
 
     thread::sleep(Duration::from_millis(300));
 
-    if let Err(e) = create_pause_file() {
+    if let Err(e) = create_pause_file(&args.file) {
         eprintln!("[ERROR] failed to create pause file: {}", e);
         return;
     }
@@ -79,7 +87,7 @@ fn main() {
     glib::timeout_add_local(Duration::from_millis(100), move || {
         let elapsed = start.elapsed().as_secs();
         if elapsed >= PAUSE_SECS {
-            let _ = fs::remove_file(PAUSE_FILE);
+            let _ = fs::remove_file(&args.file);
             send(&pusher.borrow(), "start");
             gtk::main_quit();
             return glib::ControlFlow::Break;
@@ -90,5 +98,5 @@ fn main() {
     });
 
     gtk::main();
-    let _ = fs::remove_file(PAUSE_FILE);
+    let _ = fs::remove_file(pause_file_close);
 }

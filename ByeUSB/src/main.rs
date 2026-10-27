@@ -5,13 +5,20 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 use std::fs;
+use clap::Parser;
+//use std::env::args;
 
 use chrono::prelude::*;
 use udev::MonitorBuilder;
 use zbus::blocking::Connection;
 use zmq;
 
-const PAUSE_FILE: &str = "/var/lib/byeusb/monitoring.pause";
+#[derive(Parser, Debug)]
+#[command(name = "ByeUSB", version, about)]
+struct Args {
+    #[arg(short = 'f', long = "file", default_value_t = "/var/lib/byeusb/monitoring.pause".to_string())]
+    file: String,
+}
 
 fn power_off() -> Result<(), Box<dyn std::error::Error>> {
     let connection = Connection::system()?;
@@ -28,6 +35,7 @@ fn power_off() -> Result<(), Box<dyn std::error::Error>> {
 
 fn usb_monitor_loop(paused: Arc<AtomicBool>) -> io::Result<()> {
     println!("[INIT] Starting USB monitor...");
+    let args = Args::parse();
 
     let socket = MonitorBuilder::new()?
         .match_subsystem("usb")?
@@ -69,7 +77,7 @@ fn usb_monitor_loop(paused: Arc<AtomicBool>) -> io::Result<()> {
                     syspath
                 );
 
-                if paused.load(Ordering::SeqCst) || fs::metadata(PAUSE_FILE).is_ok() {
+                if paused.load(Ordering::SeqCst) || fs::metadata(&args.file).is_ok() {
                     continue;
                 }
 
@@ -82,6 +90,8 @@ fn usb_monitor_loop(paused: Arc<AtomicBool>) -> io::Result<()> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Args::parse();
+    println!("[USB] Using {} as bridge file", args.file);
     let ctx = zmq::Context::new();
     let socket = ctx.socket(zmq::PULL)?;
     socket.bind("tcp://127.0.0.1:15641")?;
@@ -102,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         match text.as_str() {
             "start" => {
                 paused.store(false, Ordering::SeqCst);
-                let _ = fs::remove_file(PAUSE_FILE);
+                let _ = fs::remove_file(&args.file);
                 println!("[MAIN] Monitor resumed.");
             }
             "stop" => {
